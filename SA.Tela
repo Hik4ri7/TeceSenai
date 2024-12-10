@@ -1,419 +1,265 @@
 import tkinter as tk
-from tkinter import ttk
 from tkinter import messagebox
-import mysql.connector
-from crud import get_next_id, cadastrar_usuario, carregar_produtos, obter_categorias, adicionar_produto, alterar_produto, excluir_produto, atualizar_quantidade, carregar_solicitacoes, adicionar_solicitacao, aprovar_solicitacao, rejeitar_solicitacao, adicionar_observacao
-from tkinter import Tk, Label, PhotoImage
+from crud import cadastrar_usuario, verificar_login, cadastrar_produto, listar_produtos, atualizar_produto, deletar_produto, comprar_produto, vender_produto
 
-# Função para abrir a tela de cadastro (caso o usuário ainda não tenha um cadastro)
-import tkinter as tk
-from tkinter import messagebox
-import mysql.connector
-
-def abrir_cadastro(root):
-    root.withdraw()  # Esconde a tela de login
-    cadastro_root = tk.Toplevel(root)
-    cadastro_root.title("Cadastro")
-    cadastro_root.geometry("400x500+{}+{}".format(int(cadastro_root.winfo_screenwidth() / 2 - 200), int(cadastro_root.winfo_screenheight() / 2 - 225)))
-
-    # Formulário de cadastro
-    tk.Label(cadastro_root, text="Nome:").pack(pady=5)
-    entry_nome = tk.Entry(cadastro_root)
-    entry_nome.pack(pady=5)
-
-    tk.Label(cadastro_root, text="Usuário:").pack(pady=5)
-    entry_usuario_cadastro = tk.Entry(cadastro_root)
-    entry_usuario_cadastro.pack(pady=5)
-
-    tk.Label(cadastro_root, text="CPF:").pack(pady=5)
-    entry_cpf = tk.Entry(cadastro_root)
-    entry_cpf.pack(pady=5)
-
-    tk.Label(cadastro_root, text="Telefone:").pack(pady=5)
-    entry_telefone = tk.Entry(cadastro_root)
-    entry_telefone.pack(pady=5)
-
-    tk.Label(cadastro_root, text="Senha:").pack(pady=5)
-    entry_senha_cadastro = tk.Entry(cadastro_root, show="*")
-    entry_senha_cadastro.pack(pady=5)
-
-    tk.Label(cadastro_root, text="Tipo de Usuário:").pack(pady=5)
-    tipo_usuario = tk.StringVar(cadastro_root)
-    tipo_usuario.set("funcionario")
-    tipo_options = ["funcionario", "adm"]
-    tipo_dropdown = tk.OptionMenu(cadastro_root, tipo_usuario, *tipo_options)
-    tipo_dropdown.pack(pady=5)
-
-    # Função de cadastro
-    def cadastrar():
-        nome = entry_nome.get()
-        usuario_cadastro = entry_usuario_cadastro.get()
-        cpf = entry_cpf.get()
-        telefone = entry_telefone.get()
-        senha = entry_senha_cadastro.get()
-        tipo_usuario_cadastro = tipo_usuario.get()
-
-        # Verifica se os campos estão preenchidos
-        if not (nome and usuario_cadastro and cpf and telefone and senha and tipo_usuario_cadastro):
-            messagebox.showerror("Erro", "Todos os campos são obrigatórios!")
-            return
-
-        # Conectar ao banco de dados para inserir o novo usuário
-        conn = mysql.connector.connect(host="localhost", user="root", password="root", database="sa_estoque")
-        cursor = conn.cursor()
-        try:
-            cursor.execute("INSERT INTO tb_usuarios (nome, usuario, cpf, nm_telefone, senha, tipo) VALUES (%s, %s, %s, %s, %s, %s)",
-                           (nome, usuario_cadastro, cpf, telefone, senha, tipo_usuario_cadastro))
-            conn.commit()
-
-            # Mensagem de sucesso
-            messagebox.showinfo("Cadastro", "Cadastro realizado com sucesso!")
-
-            # Fechar a janela de cadastro
-            cadastro_root.destroy()
-
-            # Mostrar a tela de login novamente
-            root.deiconify()  # Mostra novamente a tela de login
-        except mysql.connector.Error as err:
-            messagebox.showerror("Erro", f"Erro ao cadastrar usuário: {err}")
-            conn.rollback()
-        finally:
-            conn.close()
-
-    # Botões
-    tk.Button(cadastro_root, text="Cadastrar", command=cadastrar).pack(pady=10)
-    tk.Button(cadastro_root, text="Voltar ao login", command=lambda: voltar_login(root, cadastro_root)).pack(pady=0)
-
-# Função para voltar ao login
-def voltar_login(root, cadastro_root):
-    cadastro_root.destroy()  # Fecha a janela de cadastro
-    root.deiconify()  # Mostra novamente a tela de login
-
-# Função de login (já fornecida por você)
-def login():
-    usuario = entry_usuario.get()
-    senha = entry_senha.get()
-
-    # Conectar ao banco de dados para verificar as credenciais
-    conn = mysql.connector.connect(host="localhost", user="root", password="root", database="sa_estoque")
-    cursor = conn.cursor()
-
-    # Verificar se o usuário existe
-    cursor.execute("SELECT * FROM tb_usuarios WHERE usuario = %s AND senha = %s", (usuario, senha))
-    result = cursor.fetchone()
-
-    if result:
-        # Se o usuário for encontrado, loga no sistema
-        id_usuario_logado = result[0]
-        tipo_usuario = result[6]  # tipo do usuário (adm ou funcionario)
-        if tipo_usuario == "adm":
-            root.withdraw()
-            TelaADM(tk.Tk(), usuario, id_usuario_logado)  # Esconde a tela de login
-        else:
-            root.withdraw()
-            TelaFuncionario(tk.Tk(), usuario, id_usuario_logado)  # Esconde a tela de login
-    else:
-        messagebox.showerror("Erro", "Usuário ou senha inválidos.")
-
-    conn.close()
-
-
-# Tela de Login
-root = tk.Tk()
-root.title("Login")
-root.geometry("400x400+{}+{}".format(int(root.winfo_screenwidth() / 2 - 200), int(root.winfo_screenheight() / 2 - 150)))
-
-root.iconbitmap("c:/Users/ALINE/Desktop/Programas python/TeceSenai.ico")
-
-    # Carregar a imagem
-img = PhotoImage(file="c:/Users/ALINE/Desktop/Programas python/TeceSenai.png")  # Substitua pelo caminho correto do arquivo
-label_img = Label(root, image=img)
-label_img.pack(pady=20)  # Adiciona um espaço abaixo da imagem
-
-
-tk.Label(root, text="Usuário:").pack(pady=5)
-entry_usuario = tk.Entry(root)
-entry_usuario.pack(pady=5)
-
-tk.Label(root, text="Senha:").pack(pady=5)
-entry_senha = tk.Entry(root, show="*")
-entry_senha.pack(pady=5)
-
-tk.Button(root, text="Login", command=login).pack(pady=10)
-tk.Button(root, text="Não tem cadastro? Cadastre-se", command=lambda: abrir_cadastro(root)).pack(pady=10)
-
-class TelaEstoque:
+class App:
     def __init__(self, root):
         self.root = root
-        self.ver_estoque()
-
-    def ver_estoque(self):
-        janela = tk.Toplevel(self.root)
-        janela.title("Controle de Estoque")
-        janela.geometry("1200x500")
-
-        # Função para carregar dados
-        def carregar_dados():
-            for item in tabela.get_children():
-                tabela.delete(item)
-            produtos = carregar_produtos()
-            for produto in produtos:
-                tabela.insert("", tk.END, values=produto)
-
-        # Função para adicionar produto
-        def adicionar():
-            nome = entry_nome.get()
-            cor = entry_cor.get()
-            preco = entry_preco.get()
-            quantidade = entry_quantidade.get()
-            categoria = combobox_categoria.get()  # Aqui deve vir o nome da categoria (ex: 'Algodão', 'Poliéster')
-    
-            # Verifica se os campos estão preenchidos
-            if not (nome and cor and preco and quantidade and categoria):
-                messagebox.showerror("Erro", "Todos os campos são obrigatórios!")
-                return
-    
-            try:
-                preco = float(preco)  # Convertendo para float
-                quantidade = int(quantidade)  # Convertendo para inteiro
-            except ValueError:
-                messagebox.showerror("Erro", "Preço e Quantidade devem ser numéricos!")
-                return
-    
-            # Chama a função para adicionar o produto
-            adicionar_produto(nome, cor, preco, quantidade, categoria)
-            messagebox.showinfo("Sucesso", "Produto adicionado com sucesso!")
-            carregar_dados()
-
-        def alterar():
-            try:
-                item = tabela.selection()[0]
-                produto = tabela.item(item, "values")
-                produto_id = produto[0]
-                nome = entry_nome.get() or produto[1]
-                cor = entry_cor.get() or produto[2]
-                preco = entry_preco.get() or produto[3]
-                quantidade = entry_quantidade.get() or produto[4]
-                alterar_produto(produto_id, nome, cor, float(preco), int(quantidade))
-                carregar_dados()
-                messagebox.showinfo("Sucesso", "Produto alterado com sucesso!")
-            except IndexError:
-                messagebox.showerror("Erro", "Nenhum produto selecionado!")
-
-        # Função para excluir produto
-        def excluir():
-            try:
-                item = tabela.selection()[0]
-                produto = tabela.item(item, "values")
-                excluir_produto(produto[0])
-                carregar_dados()
-                messagebox.showinfo("Sucesso", "Produto excluído com sucesso!")
-            except IndexError:
-                messagebox.showerror("Erro", "Nenhum produto selecionado!")
+        self.root.title("Indústria Têxtil")
+        self.root.geometry("600x600")  # Define o tamanho da janela
         
-        def vender():
-            try:
-                item = tabela.selection()[0]
-                produto = tabela.item(item, "values")
-                produto_id = produto[0]
-                quantidade_atual = int(produto[4])  # Quantidade atual do produto na tabela
+        self.root.config(bg="midnightblue")  # Cor de fundo da janela principal
+        self.tela_login()
 
-                # Solicitar a quantidade a ser vendida
-                quantidade_venda = int(entry_quantidade.get())  # A entrada que o usuário digita
+    def tela_login(self):
 
-                # Verificar se a quantidade solicitada não é maior que a disponível
-                if quantidade_venda > quantidade_atual:
-                    messagebox.showerror("Erro", "Quantidade de venda excede o estoque disponível!")
-                    return
+        self.limpar_tela()
 
-                # Subtrair a quantidade da tabela
-                nova_quantidade = quantidade_atual - quantidade_venda
+        self.root.grid_columnconfigure(0, weight=1)
+        self.root.grid_columnconfigure(1, weight=1)
 
-                # Atualizar a quantidade no banco de dados
-                atualizar_quantidade(produto_id, nova_quantidade)
+        tk.Label(self.root, text="Usuário:", bg="midnightblue", fg="white").grid(row=0, column=0, sticky="e", padx=5, pady=5)
+        tk.Label(self.root, text="Senha:", bg="midnightblue", fg="white").grid(row=1, column=0, sticky="e", padx=5, pady=5)
 
-                # Exibir mensagem de sucesso
-                messagebox.showinfo("Sucesso", f"{quantidade_venda} unidades vendidas com sucesso!")
+        self.usuario_entry = tk.Entry(self.root)
+        self.senha_entry = tk.Entry(self.root, show="*")
 
-                # Atualizar a tabela
-                carregar_dados()
-            except IndexError:
-                messagebox.showerror("Erro", "Nenhum produto selecionado!")
-            except Exception as e:
-                messagebox.showerror("Erro", f"Erro ao vender produto: {e}")
-        
-        def fechar_janela(janela):
-            janela.destroy()
+        self.usuario_entry.grid(row=0, column=1, padx=5, pady=5)
+        self.senha_entry.grid(row=1, column=1, padx=5, pady=5)
 
-        # Layout
-        tabela = ttk.Treeview(janela, columns=("ID", "Nome", "Cor", "Preço", "Quantidade", "Categoria"), show="headings")
-        tabela.heading("ID", text="ID")
-        tabela.heading("Nome", text="Nome")
-        tabela.heading("Cor", text="Cor")
-        tabela.heading("Preço", text="Preço (R$)")
-        tabela.heading("Quantidade", text="Quantidade")
-        tabela.heading("Categoria", text="Categoria")
-        tabela.pack(fill=tk.BOTH, expand=True)
+        tk.Button(self.root, text="Entrar", command=self.fazer_login, bg="midnightblue", fg="white").grid(row=2, column=0, columnspan=2, pady=5)
+        tk.Button(self.root, text="Cadastrar-se", command=self.tela_cadastro, bg="midnightblue", fg="white").grid(row=3, column=0, columnspan=2, pady=5)
+  
 
-        frame = tk.Frame(janela)
-        frame.pack(fill=tk.X)
+    def tela_cadastro(self):
+        self.limpar_tela()
 
-        tk.Label(frame, text="Nome:").grid(row=0, column=0)
-        entry_nome = tk.Entry(frame)
-        entry_nome.grid(row=0, column=1)
+    # Configurando colunas para centralizar
+        self.root.grid_columnconfigure(0, weight=1)
+        self.root.grid_columnconfigure(1, weight=1)
 
-        tk.Label(frame, text="Cor:").grid(row=0, column=2)
-        entry_cor = tk.Entry(frame)
-        entry_cor.grid(row=0, column=3)
+        tk.Label(self.root, text="Nome Completo:", bg="midnightblue", fg="white").grid(row=0, column=0, sticky="e", padx=5, pady=5)
+        tk.Label(self.root, text="CPF:", bg="midnightblue", fg="white").grid(row=1, column=0, sticky="e", padx=5, pady=5)
+        tk.Label(self.root, text="Usuário:", bg="midnightblue", fg="white").grid(row=2, column=0, sticky="e", padx=5, pady=5)
+        tk.Label(self.root, text="Senha:", bg="midnightblue", fg="white").grid(row=3, column=0, sticky="e", padx=5, pady=5)
+        tk.Label(self.root, text="Confirmar Senha:", bg="midnightblue", fg="white").grid(row=4, column=0, sticky="e", padx=5, pady=5)
+        tk.Label(self.root, text="Telefone:", bg="midnightblue", fg="white").grid(row=5, column=0, sticky="e", padx=5, pady=5)
 
-        tk.Label(frame, text="Preço:").grid(row=1, column=0)
-        entry_preco = tk.Entry(frame)
-        entry_preco.grid(row=1, column=1)
+        self.nome_entry = tk.Entry(self.root)
+        self.cpf_entry = tk.Entry(self.root)
+        self.usuario_cadastro_entry = tk.Entry(self.root)
+        self.senha_cadastro_entry = tk.Entry(self.root, show="*")
+        self.confirmar_senha_entry = tk.Entry(self.root, show="*")
+        self.telefone_entry = tk.Entry(self.root)
 
-        tk.Label(frame, text="Quantidade:").grid(row=1, column=2)
-        entry_quantidade = tk.Entry(frame)
-        entry_quantidade.grid(row=1, column=3)
+        self.nome_entry.grid(row=0, column=1, padx=5, pady=5)
+        self.cpf_entry.grid(row=1, column=1, padx=5, pady=5)
+        self.usuario_cadastro_entry.grid(row=2, column=1, padx=5, pady=5)
+        self.senha_cadastro_entry.grid(row=3, column=1, padx=5, pady=5)
+        self.confirmar_senha_entry.grid(row=4, column=1, padx=5, pady=5)
+        self.telefone_entry.grid(row=5, column=1, padx=5, pady=5)
 
-        tk.Label(frame, text="Categoria:").grid(row=2, column=0)
-        combobox_categoria = ttk.Combobox(frame, values=obter_categorias(), state="readonly")
-        combobox_categoria.grid(row=2, column=1)
+        tk.Button(self.root, text="Cadastrar", command=self.cadastrar_usuario, bg="midnightblue", fg="white").grid(row=6, column=0, columnspan=2, pady=5)
+        tk.Button(self.root, text="Voltar", command=self.tela_login, bg="midnightblue", fg="white").grid(row=7, column=0, columnspan=2, pady=5)
 
-        tk.Button(janela, text="Adicionar", command=adicionar).pack(side=tk.LEFT)
-        tk.Button(janela, text="Alterar", command=alterar).pack(side=tk.LEFT)
-        tk.Button(janela, text="Excluir", command=excluir).pack(side=tk.LEFT)
-        tk.Button(janela, text="Vender", command=vender).pack(side=tk.LEFT)
-        tk.Button(janela, text="Sair", command=lambda: fechar_janela(janela)).pack(side=tk.LEFT)  # Corrigido aqui
+    def tela_estoque(self):
+        self.limpar_tela()
 
-        carregar_dados()
+        self.root.grid_columnconfigure(0, weight=1)
+        self.root.grid_columnconfigure(1, weight=1)
 
+        tk.Label(self.root, text="Produto:", bg="midnightblue", fg="white").grid(row=0, column=0, sticky="e", padx=5, pady=5)
+        tk.Label(self.root, text="Cores:", bg="midnightblue", fg="white").grid(row=1, column=0, sticky="e", padx=5, pady=5)
+        tk.Label(self.root, text="Quantidade:", bg="midnightblue", fg="white").grid(row=2, column=0, sticky="e", padx=5, pady=5)
+        tk.Label(self.root, text="Preço/Metro:", bg="midnightblue", fg="white").grid(row=3, column=0, sticky="e", padx=5, pady=5)
 
+        self.produto_entry = tk.Entry(self.root)
+        self.cores_entry = tk.Entry(self.root)
+        self.quantidade_entry = tk.Entry(self.root)
+        self.preco_por_metro_entry = tk.Entry(self.root)
 
-class TelaSolicitacaoADM:
-    def __init__(self, root, id_usuario_logado):
-        self.root = root
-        self.id_usuario_logado = id_usuario_logado
-        self.ver_solicitacoes()
+        self.produto_entry.grid(row=0, column=1, padx=5, pady=5)
+        self.cores_entry.grid(row=1, column=1, padx=5, pady=5)
+        self.quantidade_entry.grid(row=2, column=1, padx=5, pady=5)
+        self.preco_por_metro_entry.grid(row=3, column=1, padx=5, pady=5)
 
-    def ver_solicitacoes(self):
-        self.janela = tk.Toplevel(self.root)
-        self.janela.title("Controle de Solicitações")
-        largura_tela = self.janela.winfo_screenwidth()
-        altura_tela = self.janela.winfo_screenheight()
-        self.janela.geometry(f"{largura_tela}x{altura_tela}")
+        tk.Button(self.root, text="Cadastrar Produto", command=self.cadastrar_produto, bg="midnightblue", fg="white").grid(row=4, column=0, columnspan=2, pady=5)
+        tk.Button(self.root, text="Comprar Produto", command=self.tela_comprar, bg="midnightblue", fg="white").grid(row=5, column=0, columnspan=2, pady=5)
+        tk.Button(self.root, text="Vender Produto", command=self.tela_vender, bg="midnightblue", fg="white").grid(row=6, column=0, columnspan=2, pady=5)
+        tk.Button(self.root, text="Alterar Produto", command=self.tela_alterar_produto, bg="midnightblue", fg="white").grid(row=7, column=0, columnspan=2, pady=5)
+        tk.Button(self.root, text="Listar Produtos", command=self.listar_produtos, bg="midnightblue", fg="white").grid(row=8, column=0, columnspan=2, pady=5)
+        tk.Button(self.root, text="Deletar Produto", command=self.tela_excluir, bg="midnightblue", fg="white").grid(row=9, column=0, columnspan=2, pady=5)
 
-        # Criar a tabela para exibir as solicitações
-        self.tabela = ttk.Treeview(
-            self.janela, 
-            columns=("ID", "Usuário", "Tecido", "Quantidade", "Data", "Status", "Observação"), 
-            show="headings"
-        )
-        self.tabela.heading("ID", text="ID")
-        self.tabela.heading("Usuário", text="Usuário")
-        self.tabela.heading("Tecido", text="Tecido")
-        self.tabela.heading("Quantidade", text="Quantidade")
-        self.tabela.heading("Data", text="Data")
-        self.tabela.heading("Status", text="Status")
-        self.tabela.heading("Observação", text="Observação")
-        self.tabela.pack(fill=tk.BOTH, expand=True)
+        self.text_area = tk.Text(self.root, height=10, width=80)
+        self.text_area.grid(row=10, column=0, columnspan=2, padx=5, pady=5)
 
-        # Scrollbar para a tabela
-        scrollbar = ttk.Scrollbar(self.janela, orient=tk.VERTICAL, command=self.tabela.yview)
-        self.tabela.configure(yscroll=scrollbar.set)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        tk.Button(self.root, text="Sair", command=self.tela_login, bg="midnightblue", fg="white").grid(row=11, column=0, columnspan=2, pady=5)
+    def cadastrar_produto(self):
+        produto = self.produto_entry.get()
+        cores = self.cores_entry.get()
+        quantidade = self.quantidade_entry.get()
+        preco_por_metro = self.preco_por_metro_entry.get()
 
-        # Frame para os botões
-        frame = tk.Frame(self.janela)
-        frame.pack(fill=tk.X)
-        
-        # Botões para as ações
-        btn_adicionar = tk.Button(frame, text="Adicionar Solicitação", command=self.adicionar_solicitacao)
-        btn_adicionar_observacao = tk.Button(frame, text="Adicionar Observação", command=self.adicionar_observacao)
-        btn_adicionar_observacao.pack(side=tk.LEFT, padx=5, pady=5)
-        btn_adicionar.pack(side=tk.LEFT, padx=5, pady=5)
-        btn_aprovar = tk.Button(frame, text="Aprovar", command=self.aprovar_solicitacao)
-        btn_aprovar.pack(side=tk.LEFT, padx=5, pady=5)
-        btn_rejeitar = tk.Button(frame, text="Rejeitar", command=self.rejeitar_solicitacao)
-        btn_rejeitar.pack(side=tk.LEFT, padx=5, pady=5)
-        btn_sair = tk.Button(frame, text="Sair", command=self.fechar_janela)  # Botão para fechar a janela
-        btn_sair.pack(side=tk.LEFT, padx=5, pady=5)
+        if produto and cores and quantidade and preco_por_metro:
+            cadastrar_produto(str(produto), str(cores), int(quantidade), float(preco_por_metro))
+            messagebox.showinfo("Sucesso", "Produto cadastrado com sucesso!")
+            self.produto_entry.delete(0, tk.END)
+            self.cores_entry.delete(0, tk.END)
+            self.quantidade_entry.delete(0, tk.END)
+            self.preco_por_metro_entry.delete(0, tk.END)
+        else:
+            messagebox.showerror("Erro", "Todos os campos são obrigatórios.")
 
-        # Carregar os dados da solicitação
-        self.carregar_dados()
+    def listar_produtos(self):
+        produtos = listar_produtos()
+        self.text_area.delete(1.0, tk.END)
 
-    def fechar_janela(self):
-        self.janela.destroy()
+        for produto in produtos:
+            self.text_area.insert(
+                tk.END, 
+                f"ID: {produto[0]}, Produto: {produto[1]}, Cores: {produto[2]}, Quantidade: {produto[3]}, Preço/Metro: {produto[4]}\n"
+            )
 
-    def carregar_dados(self):
-        solicitacoes = carregar_solicitacoes()
-        # Limpar a tabela antes de atualizar
-        for item in self.tabela.get_children():
-            self.tabela.delete(item)
-        for linha in solicitacoes:
-            self.tabela.insert("", "end", values=linha)
+    def tela_comprar(self):
+        self.limpar_tela()
 
-    def adicionar_solicitacao(self):
-        janela_adicionar = tk.Toplevel(self.root)
-        janela_adicionar.title("Adicionar Solicitação")
-        janela_adicionar.geometry("400x300")
+        tk.Label(self.root, text="ID Produto:", bg="midnightblue", fg="white").grid(row=0, column=0)
+        tk.Label(self.root, text="Quantidade:", bg="midnightblue", fg="white").grid(row=1, column=0)
 
-        tk.Label(janela_adicionar, text="Tipo de Tecido:").pack(pady=5)
-        tipo_tecido = tk.Entry(janela_adicionar)
-        tipo_tecido.pack(pady=5)
+        self.id_produto_entry = tk.Entry(self.root)
+        self.quantidade_compra_entry = tk.Entry(self.root)
 
-        tk.Label(janela_adicionar, text="Quantidade:").pack(pady=5)
-        quantidade = tk.Entry(janela_adicionar)
-        quantidade.pack(pady=5)
+        self.id_produto_entry.grid(row=0, column=1)
+        self.quantidade_compra_entry.grid(row=1, column=1)
 
-        def salvar():
-            try:
-                adicionar_solicitacao(self.id_usuario_logado, tipo_tecido.get(), quantidade.get())
-                messagebox.showinfo("Sucesso", "Solicitação adicionada!")
-                janela_adicionar.destroy()
-                self.carregar_dados()  # Atualiza os dados na mesma janela
-            except mysql.connector.Error as err:
-                messagebox.showerror("Erro", f"Erro ao adicionar solicitação: {err}")
+        tk.Button(self.root, text="Comprar", command=self.comprar_produto, bg="midnightblue", fg="white").grid(row=2, column=0, columnspan=2)
+        tk.Button(self.root, text="Voltar", command=self.tela_estoque, bg="midnightblue", fg="white").grid(row=3, column=0, columnspan=2)
 
-        tk.Button(janela_adicionar, text="Salvar", command=salvar).pack(pady=20)
+    def comprar_produto(self):
+        id_produto = self.id_produto_entry.get()
+        quantidade = self.quantidade_compra_entry.get()
 
-    def aprovar_solicitacao(self):
-        selecionado = self.tabela.selection()
-        if selecionado:
-            id_solicitacao = self.tabela.item(selecionado)["values"][0]
-            aprovar_solicitacao(id_solicitacao)
-            messagebox.showinfo("Sucesso", "Solicitação aprovada!")
-            self.carregar_dados()
-
-    def rejeitar_solicitacao(self):
-        selecionado = self.tabela.selection()
-        if selecionado:
-            id_solicitacao = self.tabela.item(selecionado)["values"][0]
-            rejeitar_solicitacao(id_solicitacao)
-            messagebox.showinfo("Sucesso", "Solicitação rejeitada!")
-            self.carregar_dados()
-
-    def adicionar_observacao(self):
-        selecionado = self.tabela.selection()
-        if not selecionado:
-            messagebox.showerror("Erro", "Selecione uma solicitação para adicionar observação!")
-            return
-
-        janela_observacao = tk.Toplevel(self.root)
-        janela_observacao.title("Adicionar Observação")
-        janela_observacao.geometry("400x200")
-
-        tk.Label(janela_observacao, text="Observação:").pack(pady=5)
-        observacao = tk.Entry(janela_observacao)
-        observacao.pack(pady=5)
-
-        def salvar_observacao():
-            id_solicitacao = self.tabela.item(selecionado)["values"][0]
-            nova_observacao = observacao.get()
-            if nova_observacao:
-                adicionar_observacao(id_solicitacao, nova_observacao)
-                messagebox.showinfo("Sucesso", "Observação adicionada com sucesso!")
-                janela_observacao.destroy()
-                self.carregar_dados()
+        if id_produto and quantidade:
+            if comprar_produto(int(id_produto), int(quantidade)):
+                messagebox.showinfo("Sucesso", f"Compra de {quantidade} unidades realizada com sucesso!")
             else:
-                messagebox.showerror("Erro", "O campo de observação não pode estar vazio!")
+                messagebox.showerror("Erro", "Produto não encontrado ou erro na compra.")
+        else:
+            messagebox.showerror("Erro", "Todos os campos são obrigatórios.")
 
-        tk.Button(janela_observacao, text="Salvar", command=salvar_observacao).pack(pady=20)
+    def tela_vender(self):
+        self.limpar_tela()
+
+        tk.Label(self.root, text="ID Produto:", bg="midnightblue", fg="white").grid(row=0, column=0)
+        tk.Label(self.root, text="Quantidade:", bg="midnightblue", fg="white").grid(row=1, column=0)
+
+        self.id_produto_venda_entry = tk.Entry(self.root)
+        self.quantidade_venda_entry = tk.Entry(self.root)
+
+        self.id_produto_venda_entry.grid(row=0, column=1)
+        self.quantidade_venda_entry.grid(row=1, column=1)
+
+        tk.Button(self.root, text="Vender", command=self.vender_produto, bg="midnightblue", fg="white").grid(row=2, column=0, columnspan=2)
+        tk.Button(self.root, text="Voltar", command=self.tela_estoque, bg="midnightblue", fg="white").grid(row=3, column=0, columnspan=2)
+
+    def vender_produto(self):
+        id_produto = self.id_produto_venda_entry.get()
+        quantidade = self.quantidade_venda_entry.get()
+
+        if id_produto and quantidade:
+            if vender_produto(int(id_produto), int(quantidade)):
+                messagebox.showinfo("Sucesso", f"Venda de {quantidade} unidades realizada com sucesso!")
+            else:
+                messagebox.showerror("Erro", "Produto não encontrado ou erro na venda.")
+        else:
+            messagebox.showerror("Erro", "Todos os campos são obrigatórios.")
+
+    def tela_alterar_produto(self):
+        self.limpar_tela()
+
+        tk.Label(self.root, text="ID Produto:", bg="midnightblue", fg="white").grid(row=0, column=0)
+        tk.Label(self.root, text="Produto:", bg="midnightblue", fg="white").grid(row=1, column=0)
+        tk.Label(self.root, text="Cores:", bg="midnightblue", fg="white").grid(row=2, column=0)
+        tk.Label(self.root, text="Quantidade:", bg="midnightblue", fg="white").grid(row=3, column=0)
+        tk.Label(self.root, text="Preço/Metro:", bg="midnightblue", fg="white").grid(row=4, column=0)
+
+        self.id_produto_alterar_entry = tk.Entry(self.root)
+        self.produto_alterar_entry = tk.Entry(self.root)
+        self.cores_alterar_entry = tk.Entry(self.root)
+        self.quantidade_alterar_entry = tk.Entry(self.root)
+        self.preco_por_metro_alterar_entry = tk.Entry(self.root)
+
+        self.id_produto_alterar_entry.grid(row=0, column=1)
+        self.produto_alterar_entry.grid(row=1, column=1)
+        self.cores_alterar_entry.grid(row=2, column=1)
+        self.quantidade_alterar_entry.grid(row=3, column=1)
+        self.preco_por_metro_alterar_entry.grid(row=4, column=1)
+
+        tk.Button(self.root, text="Alterar Produto", command=self.salvar_alteracao, bg="midnightblue", fg="white").grid(row=5, column=0, columnspan=2)
+        tk.Button(self.root, text="Voltar", command=self.tela_estoque, bg="midnightblue", fg="white").grid(row=6, column=0, columnspan=2)
+
+    def salvar_alteracao(self):
+        id_produto = self.id_produto_alterar_entry.get()
+        produto = self.produto_alterar_entry.get()
+        cores = self.cores_alterar_entry.get()
+        quantidade = self.quantidade_alterar_entry.get()
+        preco_por_metro = self.preco_por_metro_alterar_entry.get()
+
+        if id_produto and produto and cores and quantidade and preco_por_metro:
+            atualizar_produto(int(id_produto), str(produto), str(cores), int(quantidade), float(preco_por_metro))
+            messagebox.showinfo("Sucesso", "Produto alterado com sucesso!")
+        else:
+            messagebox.showerror("Erro", "Todos os campos são obrigatórios.")
+
+    def deletar_produto(self):
+        id_produto = self.id_produto_entry.get()
+
+        if id_produto:
+            deletar_produto(int(id_produto))
+            messagebox.showinfo("Sucesso", "Produto excluído com sucesso!")
+            self.id_produto_entry.delete(0, tk.END)
+        else:
+            messagebox.showerror("Erro", "Informe o ID do produto para excluir.")
+
+    def tela_excluir(self):
+        self.limpar_tela()
+
+        tk.Label(self.root, text="ID Produto:", bg="midnightblue", fg="white").grid(row=0, column=0)
+
+        self.id_produto_entry = tk.Entry(self.root)  # Corrigido o nome da variável
+        self.id_produto_entry.grid(row=0, column=1)
+
+        tk.Button(self.root, text="Deletar", command=self.deletar_produto, bg="midnightblue", fg="white").grid(row=2, column=0, columnspan=2)
+        tk.Button(self.root, text="Voltar", command=self.tela_estoque, bg="midnightblue", fg="white").grid(row=3, column=0, columnspan=2)
+    def limpar_tela(self):
+        for widget in self.root.winfo_children():
+            widget.grid_forget()
+
+    def cadastrar_usuario(self):
+        nome = self.nome_entry.get()
+        cpf = self.cpf_entry.get()
+        usuario = self.usuario_cadastro_entry.get()
+        senha = self.senha_cadastro_entry.get()
+        confirmar_senha = self.confirmar_senha_entry.get()
+        telefone = self.telefone_entry.get()
+
+        if senha != confirmar_senha:
+            messagebox.showerror("Erro", "As senhas não coincidem.")
+        else:
+            cadastrar_usuario(nome, cpf, usuario, senha, telefone)
+            messagebox.showinfo("Sucesso", "Usuário cadastrado com sucesso!")
+            self.tela_login()
+
+
+    def fazer_login(self):
+        usuario = self.usuario_entry.get()
+        senha = self.senha_entry.get()
+
+        if verificar_login(usuario, senha):
+            self.tela_estoque()
+        else:
+            messagebox.showerror("Erro", "Usuário ou senha inválidos.")
+# Criando a aplicação
+root = tk.Tk()
+app = App(root)
+root.mainloop()

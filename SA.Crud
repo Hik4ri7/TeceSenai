@@ -98,3 +98,67 @@ def alterar_produto(produto_id, nome, cor, preco, quantidade):
     )
     conn.commit()
     conn.close()
+
+def excluir_produto(produto_id):
+    conn = conectar_banco()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM tb_produtos WHERE id_produto = %s", (produto_id,))
+    conn.commit()
+    conn.close()
+
+def atualizar_quantidade(produto_id, nova_quantidade):
+    conn = conectar_banco()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE tb_produtos SET quantidade = %s WHERE id_produto = %s", (nova_quantidade, produto_id))
+    conn.commit()
+    conn.close()
+    
+def carregar_solicitacoes():
+    conn = conectar_banco()
+    cursor = conn.cursor()
+    query = """
+    SELECT 
+        s.id_solicitacao,
+        u.nome,
+        s.tipo_tecido,
+        s.quantidade,
+        s.data_solicitacao,
+        s.status,
+        s.observacao
+    FROM tb_solicitacao s
+    JOIN tb_usuarios u ON s.id_usuario = u.id_usuario;
+    """
+    cursor.execute(query)
+    solicitacoes = cursor.fetchall()
+    conn.close()
+    return solicitacoes
+
+def adicionar_solicitacao(id_usuario_logado, tipo_tecido, quantidade):
+    conn = conectar_banco()
+    cursor = conn.cursor()
+    query = "INSERT INTO tb_solicitacao (id_usuario, tipo_tecido, quantidade) VALUES (%s, %s, %s)"
+    cursor.execute(query, (id_usuario_logado, tipo_tecido, quantidade))
+    conn.commit()
+    conn.close()
+
+def aprovar_solicitacao(id_solicitacao):
+    conn = conectar_banco()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE tb_solicitacao SET status='aprovado' WHERE id_solicitacao=%s", (id_solicitacao,))
+    conn.commit()
+    conn.close()
+
+def rejeitar_solicitacao(id_solicitacao):
+    conn = conectar_banco()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE tb_solicitacao SET status='rejeitado' WHERE id_solicitacao=%s", (id_solicitacao,))
+    conn.commit()
+    conn.close()
+
+def adicionar_observacao(id_solicitacao, observacao):
+    conn = conectar_banco()
+    cursor = conn.cursor()
+    query = "UPDATE tb_solicitacao SET observacao = %s WHERE id_solicitacao = %s"
+    cursor.execute(query, (observacao, id_solicitacao))
+    conn.commit()
+    conn.close()

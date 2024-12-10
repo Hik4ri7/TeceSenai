@@ -199,3 +199,221 @@ class TelaEstoque:
                 messagebox.showinfo("Sucesso", "Produto alterado com sucesso!")
             except IndexError:
                 messagebox.showerror("Erro", "Nenhum produto selecionado!")
+
+        # Função para excluir produto
+        def excluir():
+            try:
+                item = tabela.selection()[0]
+                produto = tabela.item(item, "values")
+                excluir_produto(produto[0])
+                carregar_dados()
+                messagebox.showinfo("Sucesso", "Produto excluído com sucesso!")
+            except IndexError:
+                messagebox.showerror("Erro", "Nenhum produto selecionado!")
+        
+        def vender():
+            try:
+                item = tabela.selection()[0]
+                produto = tabela.item(item, "values")
+                produto_id = produto[0]
+                quantidade_atual = int(produto[4])  # Quantidade atual do produto na tabela
+
+                # Solicitar a quantidade a ser vendida
+                quantidade_venda = int(entry_quantidade.get())  # A entrada que o usuário digita
+
+                # Verificar se a quantidade solicitada não é maior que a disponível
+                if quantidade_venda > quantidade_atual:
+                    messagebox.showerror("Erro", "Quantidade de venda excede o estoque disponível!")
+                    return
+
+                # Subtrair a quantidade da tabela
+                nova_quantidade = quantidade_atual - quantidade_venda
+
+                # Atualizar a quantidade no banco de dados
+                atualizar_quantidade(produto_id, nova_quantidade)
+
+                # Exibir mensagem de sucesso
+                messagebox.showinfo("Sucesso", f"{quantidade_venda} unidades vendidas com sucesso!")
+
+                # Atualizar a tabela
+                carregar_dados()
+            except IndexError:
+                messagebox.showerror("Erro", "Nenhum produto selecionado!")
+            except Exception as e:
+                messagebox.showerror("Erro", f"Erro ao vender produto: {e}")
+        
+        def fechar_janela(janela):
+            janela.destroy()
+
+        # Layout
+        tabela = ttk.Treeview(janela, columns=("ID", "Nome", "Cor", "Preço", "Quantidade", "Categoria"), show="headings")
+        tabela.heading("ID", text="ID")
+        tabela.heading("Nome", text="Nome")
+        tabela.heading("Cor", text="Cor")
+        tabela.heading("Preço", text="Preço (R$)")
+        tabela.heading("Quantidade", text="Quantidade")
+        tabela.heading("Categoria", text="Categoria")
+        tabela.pack(fill=tk.BOTH, expand=True)
+
+        frame = tk.Frame(janela)
+        frame.pack(fill=tk.X)
+
+        tk.Label(frame, text="Nome:").grid(row=0, column=0)
+        entry_nome = tk.Entry(frame)
+        entry_nome.grid(row=0, column=1)
+
+        tk.Label(frame, text="Cor:").grid(row=0, column=2)
+        entry_cor = tk.Entry(frame)
+        entry_cor.grid(row=0, column=3)
+
+        tk.Label(frame, text="Preço:").grid(row=1, column=0)
+        entry_preco = tk.Entry(frame)
+        entry_preco.grid(row=1, column=1)
+
+        tk.Label(frame, text="Quantidade:").grid(row=1, column=2)
+        entry_quantidade = tk.Entry(frame)
+        entry_quantidade.grid(row=1, column=3)
+
+        tk.Label(frame, text="Categoria:").grid(row=2, column=0)
+        combobox_categoria = ttk.Combobox(frame, values=obter_categorias(), state="readonly")
+        combobox_categoria.grid(row=2, column=1)
+
+        tk.Button(janela, text="Adicionar", command=adicionar).pack(side=tk.LEFT)
+        tk.Button(janela, text="Alterar", command=alterar).pack(side=tk.LEFT)
+        tk.Button(janela, text="Excluir", command=excluir).pack(side=tk.LEFT)
+        tk.Button(janela, text="Vender", command=vender).pack(side=tk.LEFT)
+        tk.Button(janela, text="Sair", command=lambda: fechar_janela(janela)).pack(side=tk.LEFT)  # Corrigido aqui
+
+        carregar_dados()
+
+
+
+class TelaSolicitacaoADM:
+    def __init__(self, root, id_usuario_logado):
+        self.root = root
+        self.id_usuario_logado = id_usuario_logado
+        self.ver_solicitacoes()
+
+    def ver_solicitacoes(self):
+        self.janela = tk.Toplevel(self.root)
+        self.janela.title("Controle de Solicitações")
+        largura_tela = self.janela.winfo_screenwidth()
+        altura_tela = self.janela.winfo_screenheight()
+        self.janela.geometry(f"{largura_tela}x{altura_tela}")
+
+        # Criar a tabela para exibir as solicitações
+        self.tabela = ttk.Treeview(
+            self.janela, 
+            columns=("ID", "Usuário", "Tecido", "Quantidade", "Data", "Status", "Observação"), 
+            show="headings"
+        )
+        self.tabela.heading("ID", text="ID")
+        self.tabela.heading("Usuário", text="Usuário")
+        self.tabela.heading("Tecido", text="Tecido")
+        self.tabela.heading("Quantidade", text="Quantidade")
+        self.tabela.heading("Data", text="Data")
+        self.tabela.heading("Status", text="Status")
+        self.tabela.heading("Observação", text="Observação")
+        self.tabela.pack(fill=tk.BOTH, expand=True)
+
+        # Scrollbar para a tabela
+        scrollbar = ttk.Scrollbar(self.janela, orient=tk.VERTICAL, command=self.tabela.yview)
+        self.tabela.configure(yscroll=scrollbar.set)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        # Frame para os botões
+        frame = tk.Frame(self.janela)
+        frame.pack(fill=tk.X)
+        
+        # Botões para as ações
+        btn_adicionar = tk.Button(frame, text="Adicionar Solicitação", command=self.adicionar_solicitacao)
+        btn_adicionar_observacao = tk.Button(frame, text="Adicionar Observação", command=self.adicionar_observacao)
+        btn_adicionar_observacao.pack(side=tk.LEFT, padx=5, pady=5)
+        btn_adicionar.pack(side=tk.LEFT, padx=5, pady=5)
+        btn_aprovar = tk.Button(frame, text="Aprovar", command=self.aprovar_solicitacao)
+        btn_aprovar.pack(side=tk.LEFT, padx=5, pady=5)
+        btn_rejeitar = tk.Button(frame, text="Rejeitar", command=self.rejeitar_solicitacao)
+        btn_rejeitar.pack(side=tk.LEFT, padx=5, pady=5)
+        btn_sair = tk.Button(frame, text="Sair", command=self.fechar_janela)  # Botão para fechar a janela
+        btn_sair.pack(side=tk.LEFT, padx=5, pady=5)
+
+        # Carregar os dados da solicitação
+        self.carregar_dados()
+
+    def fechar_janela(self):
+        self.janela.destroy()
+
+    def carregar_dados(self):
+        solicitacoes = carregar_solicitacoes()
+        # Limpar a tabela antes de atualizar
+        for item in self.tabela.get_children():
+            self.tabela.delete(item)
+        for linha in solicitacoes:
+            self.tabela.insert("", "end", values=linha)
+
+    def adicionar_solicitacao(self):
+        janela_adicionar = tk.Toplevel(self.root)
+        janela_adicionar.title("Adicionar Solicitação")
+        janela_adicionar.geometry("400x300")
+
+        tk.Label(janela_adicionar, text="Tipo de Tecido:").pack(pady=5)
+        tipo_tecido = tk.Entry(janela_adicionar)
+        tipo_tecido.pack(pady=5)
+
+        tk.Label(janela_adicionar, text="Quantidade:").pack(pady=5)
+        quantidade = tk.Entry(janela_adicionar)
+        quantidade.pack(pady=5)
+
+        def salvar():
+            try:
+                adicionar_solicitacao(self.id_usuario_logado, tipo_tecido.get(), quantidade.get())
+                messagebox.showinfo("Sucesso", "Solicitação adicionada!")
+                janela_adicionar.destroy()
+                self.carregar_dados()  # Atualiza os dados na mesma janela
+            except mysql.connector.Error as err:
+                messagebox.showerror("Erro", f"Erro ao adicionar solicitação: {err}")
+
+        tk.Button(janela_adicionar, text="Salvar", command=salvar).pack(pady=20)
+
+    def aprovar_solicitacao(self):
+        selecionado = self.tabela.selection()
+        if selecionado:
+            id_solicitacao = self.tabela.item(selecionado)["values"][0]
+            aprovar_solicitacao(id_solicitacao)
+            messagebox.showinfo("Sucesso", "Solicitação aprovada!")
+            self.carregar_dados()
+
+    def rejeitar_solicitacao(self):
+        selecionado = self.tabela.selection()
+        if selecionado:
+            id_solicitacao = self.tabela.item(selecionado)["values"][0]
+            rejeitar_solicitacao(id_solicitacao)
+            messagebox.showinfo("Sucesso", "Solicitação rejeitada!")
+            self.carregar_dados()
+
+    def adicionar_observacao(self):
+        selecionado = self.tabela.selection()
+        if not selecionado:
+            messagebox.showerror("Erro", "Selecione uma solicitação para adicionar observação!")
+            return
+
+        janela_observacao = tk.Toplevel(self.root)
+        janela_observacao.title("Adicionar Observação")
+        janela_observacao.geometry("400x200")
+
+        tk.Label(janela_observacao, text="Observação:").pack(pady=5)
+        observacao = tk.Entry(janela_observacao)
+        observacao.pack(pady=5)
+
+        def salvar_observacao():
+            id_solicitacao = self.tabela.item(selecionado)["values"][0]
+            nova_observacao = observacao.get()
+            if nova_observacao:
+                adicionar_observacao(id_solicitacao, nova_observacao)
+                messagebox.showinfo("Sucesso", "Observação adicionada com sucesso!")
+                janela_observacao.destroy()
+                self.carregar_dados()
+            else:
+                messagebox.showerror("Erro", "O campo de observação não pode estar vazio!")
+
+        tk.Button(janela_observacao, text="Salvar", command=salvar_observacao).pack(pady=20)

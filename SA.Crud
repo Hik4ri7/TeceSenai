@@ -1,0 +1,100 @@
+import mysql.connector
+
+# Conectando ao banco de dados
+def conectar_banco():
+    return mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="root",
+        database="sa_estoque"
+    )
+
+
+def cadastrar_usuario(nome, usuario, cpf, telefone, senha, tipo_usuario, cadastro_root):
+    conn = mysql.connector.connect(host="localhost", user="root", password="root", database="sa_estoque")
+    cursor = conn.cursor()
+
+    cursor.execute("INSERT INTO tb_usuarios (nome, usuario, cpf, nm_telefone, senha, tipo) VALUES (%s, %s, %s, %s, %s, %s)",
+                   (nome, usuario, cpf, telefone, senha, tipo_usuario))
+
+    conn.commit()
+    conn.close()
+
+def carregar_produtos():
+    conn = conectar_banco()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id_produto, nome, cor, preco, quantidade, id_categoria FROM tb_produtos")
+    produtos = cursor.fetchall()
+    conn.close()
+    return produtos
+
+def obter_categorias():
+    conn = conectar_banco()
+    cursor = conn.cursor()
+    cursor.execute("SELECT nome_categoria FROM tb_categorias")
+    categorias = [categoria[0] for categoria in cursor.fetchall()]
+    conn.close()
+    return categorias
+
+def get_next_id():
+    conn = conectar_banco()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT id_produto FROM tb_produtos ORDER BY id_produto")
+    ids = cursor.fetchall()
+    
+    # Encontrar o primeiro ID ausente
+    missing_id = 1
+    for id in ids:
+        if id[0] != missing_id:
+            break
+        missing_id += 1
+    
+    conn.close()
+    return missing_id
+
+def adicionar_produto(nome, cor, preco, quantidade, categoria_nome):
+    conn = conectar_banco()
+    cursor = conn.cursor()
+    
+    # Gerar o próximo id_produto disponível
+    id_produto = get_next_id()
+
+    try:
+        # Remover espaços extras e converter para minúsculas para evitar problemas de correspondência
+        categoria_nome = categoria_nome.strip().lower()
+
+        # Obter o id_categoria a partir do nome da categoria
+        cursor.execute("SELECT id_categoria FROM tb_categorias WHERE LOWER(nome_categoria) = %s", (categoria_nome,))
+        resultado = cursor.fetchone()
+
+        if resultado is None:
+            raise ValueError(f"Categoria '{categoria_nome}' não encontrada!")
+
+        id_categoria = resultado[0]  # Pega o ID da categoria
+
+        # Inserir o produto na tabela tb_produtos
+        cursor.execute(
+            "INSERT INTO tb_produtos (id_produto, nome, cor, preco, quantidade, id_categoria) "
+            "VALUES (%s, %s, %s, %s, %s, %s)",
+            (id_produto, nome, cor, preco, quantidade, id_categoria)
+        )
+        conn.commit()
+    except mysql.connector.Error as err:
+        print(f"Erro ao adicionar produto: {err}")
+        conn.rollback()
+    except ValueError as ve:
+        print(ve)
+        conn.rollback()
+    finally:
+        conn.close()
+        
+def alterar_produto(produto_id, nome, cor, preco, quantidade):
+    conn = conectar_banco()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE tb_produtos SET nome = %s, cor = %s, preco = %s, quantidade = %s WHERE id_produto = %s",
+        (nome, cor, preco, quantidade, produto_id)
+    )
+    conn.commit()
+    conn.close()

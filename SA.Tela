@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
-from crud import cadastrar_usuario, verificar_login, cadastrar_produto, listar_produtos, atualizar_produto, deletar_produto, comprar_produto, vender_produto
+from crud import*
 
 class App:
     def __init__(self, root):
@@ -267,14 +267,117 @@ class App:
         cadastrar_usuario(nome, cpf, usuario, senha, telefone)
         messagebox.showinfo("Sucesso", "Usuário cadastrado com sucesso!")
         self.tela_login()
+        
     def fazer_login(self):
         usuario = self.usuario_entry.get()
         senha = self.senha_entry.get()
 
-        if verificar_login(usuario, senha):
-            self.tela_estoque()
+        resultado = verificar_login(usuario, senha)  # Retorna (usuario, tipo_usuario) ou None
+
+        if resultado:
+            usuario, tipo_usuario = resultado
+
+            if tipo_usuario == "adm":
+                ADM(self.root)  # Redireciona para a interface do administrador
+            elif tipo_usuario == "funcionario":
+                self.tela_estoque()  # Redireciona para a interface de estoque
+            else:
+                messagebox.showerror("Erro", "Tipo de usuário inválido.")
         else:
             messagebox.showerror("Erro", "Usuário ou senha inválidos.")
+            
+    def TelaMenuADM(self):
+        tk.Button(self.root, text="Estoque", command=self.tela_estoque, bg="midnightblue", fg="white").grid(row=2, column=0, columnspan=2)
+        tk.Button(self.root, text="Cadastro de Usuarios", command=self.tela_cadastro, bg="midnightblue", fg="white").grid(row=3, column=0, columnspan=2) 
+
+class ADM:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Menu Administrador")
+        self.tela_menu_adm()
+
+    def tela_menu_adm(self):
+        self.limpar_tela()
+
+        self.root.grid_columnconfigure(0, weight=1)
+        self.root.grid_columnconfigure(1, weight=1)
+
+        tk.Label(self.root, text="Menu do Administrador", bg="midnightblue", fg="white", font=("Arial", 16)).grid(
+            row=0, column=0, columnspan=2, pady=20
+        )
+
+        tk.Button(self.root, text="Cadastrar Usuário", command=self.tela_cadastrar_usuario, bg="midnightblue", fg="white").grid(
+            row=1, column=0, columnspan=2, pady=10
+        )
+
+        tk.Button(self.root, text="Acessar Estoque", command=self.tela_estoque, bg="midnightblue", fg="white").grid(
+            row=2, column=0, columnspan=2, pady=10
+        )
+
+        tk.Button(self.root, text="Sair", command=self.voltar_para_login, bg="midnightblue", fg="white").grid(
+            row=3, column=0, columnspan=2, pady=10
+        )
+
+    def tela_cadastrar_usuario(self):
+        self.limpar_tela()
+
+        campos = ["Nome Completo", "CPF", "Usuário", "Senha", "Confirmar Senha", "Telefone", "Tipo de Usuário"]
+        self.entries = {}
+
+        for i, campo in enumerate(campos):
+            tk.Label(self.root, text=f"{campo}:", bg="midnightblue", fg="white").grid(row=i, column=0, sticky="e", padx=5, pady=5)
+            entry = tk.Entry(self.root, show="*" if "Senha" in campo else None)
+            entry.grid(row=i, column=1, padx=5, pady=5)
+            self.entries[campo] = entry
+
+        tk.Button(self.root, text="Cadastrar", command=self.cadastrar_usuario, bg="midnightblue", fg="white").grid(
+            row=len(campos), column=0, columnspan=2, pady=10
+        )
+
+        tk.Button(self.root, text="Voltar", command=self.tela_menu_adm, bg="midnightblue", fg="white").grid(
+            row=len(campos) + 1, column=0, columnspan=2, pady=5
+        )
+
+    def tela_estoque(self):
+        # Redireciona para o estoque padrão
+        App(self.root).tela_estoque()
+
+    def cadastrar_usuario(self):
+        dados = {campo: entry.get() for campo, entry in self.entries.items()}
+
+        if any(not valor for valor in dados.values()):
+            messagebox.showerror("Erro", "Todos os campos são obrigatórios.")
+            return
+
+        if not dados["CPF"].isdigit() or not dados["Telefone"].isdigit():
+            messagebox.showerror("Erro", "CPF e Telefone devem conter apenas números.")
+            return
+
+        if not dados["Senha"].isdigit():
+            messagebox.showerror("Erro", "A senha deve conter apenas números.")
+            return
+
+        if dados["Senha"] != dados["Confirmar Senha"]:
+            messagebox.showerror("Erro", "As senhas não coincidem.")
+            return
+
+        tipo_usuario = dados["Tipo de Usuário"].lower()
+        if tipo_usuario not in ["adm", "funcionario"]:
+            messagebox.showerror("Erro", "O tipo de usuário deve ser 'adm' ou 'funcionario'.")
+            return
+
+        cadastrar_usuario(
+            dados["Nome Completo"], dados["CPF"], dados["Usuário"], dados["Senha"], dados["Telefone"], tipo_usuario
+        )
+        messagebox.showinfo("Sucesso", "Usuário cadastrado com sucesso!")
+        self.tela_menu_adm()
+
+    def voltar_para_login(self):
+        App(self.root).tela_login()
+
+    def limpar_tela(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
 # Criando a aplicação
 root = tk.Tk()
 app = App(root)

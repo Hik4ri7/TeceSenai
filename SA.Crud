@@ -4,19 +4,19 @@ def conectar():
     return mysql.connector.connect(
         host="localhost",
         user="root",
-        password="root",
+        password="Batmaca007#Ninbat007#",
         database="gaguca"
     )
 
 # Cadastrar usuário
-def cadastrar_usuario(nome_completo, cpf, usuario, senha, telefone):
+def cadastrar_usuario(nome_completo, cpf, usuario, senha, telefone, tipo="funcionario"):
     conn = conectar()
     cursor = conn.cursor()
     query = """
-        INSERT INTO usuarios (nome_completo, cpf, usuario, senha, telefone)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO usuarios (nome_completo, cpf, usuario, senha, telefone, tipo)
+        VALUES (%s, %s, %s, %s, %s, %s)
     """
-    cursor.execute(query, (nome_completo, cpf, usuario, senha, telefone))
+    cursor.execute(query, (nome_completo, cpf, usuario, senha, telefone, tipo))
     conn.commit()
     conn.close()
 
@@ -24,11 +24,11 @@ def cadastrar_usuario(nome_completo, cpf, usuario, senha, telefone):
 def verificar_login(usuario, senha):
     conn = conectar()
     cursor = conn.cursor()
-    query = "SELECT * FROM usuarios WHERE usuario = %s AND senha = %s"
+    query = "SELECT usuario, tipo FROM usuarios WHERE usuario = %s AND senha = %s"
     cursor.execute(query, (usuario, senha))
-    resultado = cursor.fetchone()
+    resultado = cursor.fetchone()  # Retorna None se não encontrar
     conn.close()
-    return resultado
+    return resultado  # Exemplo: ('usuario1', 'adm') ou None
 
 # Cadastrar produto
 def cadastrar_produto(produto, cores, quantidade, preco_por_metro):
@@ -91,19 +91,47 @@ def atualizar_produto(produto_id, produto=None, cores=None, quantidade=None, pre
 
 
 # Função para alterar as informações de um produto
-def alterar_produto(produto_id, nome, cores, quantidade, preco_por_metro):
-    # Aqui você deve alterar o produto no banco de dados ou estrutura de dados
-    # Exemplo de como seria a alteração de um produto
-    produto = db.buscar_produto_por_id(produto_id)  # Busca o produto pelo ID
+def alterar_produto(produto_id, nome=None, cores=None, quantidade=None, preco_por_metro=None):
+    conn = conectar()
+    cursor = conn.cursor()
 
-    if produto:
-        produto.nome = nome
-        produto.cores = cores
-        produto.quantidade = quantidade
-        produto.preco_por_metro = preco_por_metro
+    # Cria uma lista para armazenar os campos e valores a serem atualizados
+    campos = []
+    valores = []
 
-        return True
-    return False  # Se o produto não for encontrado, retorna False
+    if nome:
+        campos.append("produto = %s")
+        valores.append(nome)
+    if cores:
+        campos.append("cores = %s")
+        valores.append(cores)
+    if quantidade is not None:  # Permite quantidade igual a zero
+        campos.append("quantidade = %s")
+        valores.append(quantidade)
+    if preco_por_metro is not None:  # Permite preço igual a zero
+        campos.append("preco_por_metro = %s")
+        valores.append(preco_por_metro)
+
+    # Se não houver campos para atualizar, retorne False
+    if not campos:
+        return False
+
+    # Adiciona o ID do produto no final dos valores
+    valores.append(produto_id)
+
+    # Constrói a query dinamicamente com os campos fornecidos
+    query = f"""
+        UPDATE produtos
+        SET {', '.join(campos)}
+        WHERE id = %s
+    """
+
+    cursor.execute(query, tuple(valores))
+    conn.commit()
+
+    sucesso = cursor.rowcount > 0  # Verifica se alguma linha foi alterada
+    conn.close()
+    return sucesso
 
 # Deletar produto
 def deletar_produto(produto_id):
